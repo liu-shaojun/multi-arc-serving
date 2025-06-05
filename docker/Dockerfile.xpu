@@ -41,7 +41,7 @@ ENV VLLM_TARGET_DEVICE=xpu
 ENV VLLM_WORKER_MULTIPROC_METHOD=spawn
 
 # Clone and install vLLM with patch
-RUN git clone -b v0.8.3 https://github.com/vllm-project/vllm.git && \
+RUN git clone -b v0.8.5.post1 https://github.com/vllm-project/vllm.git && \
     cd vllm && \
     git apply /llm/vllm_for_multi_arc.patch && \
     --mount=type=cache,target=/root/.cache/pip \
