@@ -47,7 +47,7 @@ RUN git clone -b v0.8.3 https://github.com/vllm-project/vllm.git && \
     cd vllm && \
     git apply /llm/vllm_for_multi_arc.patch
 
-# Install requirements with cache + .git info
+# Install requirements with cache info
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir \
         -r requirements/xpu.txt && \
