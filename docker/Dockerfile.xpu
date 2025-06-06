@@ -42,12 +42,12 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/"
 ENV VLLM_TARGET_DEVICE=xpu
 ENV VLLM_WORKER_MULTIPROC_METHOD=spawn
 
-# Clone + patch
+# Clone + patch vllm
 RUN git clone -b v0.8.3 https://github.com/vllm-project/vllm.git && \
     cd vllm && \
     git apply /llm/vllm_for_multi_arc.patch
 
-# Install requirements with cache info
+# Install dependencies and vllm; use pip cache to speed up builds
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir \
         -r requirements/xpu.txt && \
