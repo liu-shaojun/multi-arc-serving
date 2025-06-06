@@ -1,12 +1,15 @@
 # ======== Base Stage ========
 FROM intel/deep-learning-essentials:2025.0.2-0-devel-ubuntu24.04 AS vllm-base
 
+ARG https_proxy
+ARG http_proxy
+
 # Add Intel oneAPI repo and PPA for GPU support
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null && \
     echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list && \
     add-apt-repository -y ppa:kobuk-team/intel-graphics-testing
 
-# Install dependencies and Python 3.10    
+# Install dependencies and Python 3.10
 RUN apt-get update -y && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
@@ -31,7 +34,6 @@ RUN apt-get update -y && \
     apt-get install -y libze1 libze-dev libze-intel-gpu1 intel-opencl-icd libze-intel-gpu-raytracing && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-
 WORKDIR /llm
 COPY ./vllm_for_multi_arc.patch /llm/
 
@@ -40,15 +42,19 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/"
 ENV VLLM_TARGET_DEVICE=xpu
 ENV VLLM_WORKER_MULTIPROC_METHOD=spawn
 
-# Clone and install vLLM with patch
-RUN git clone -b v0.8.5.post1 https://github.com/vllm-project/vllm.git && \
+# Clone + patch
+RUN git clone -b v0.8.3 https://github.com/vllm-project/vllm.git && \
     cd vllm && \
-    git apply /llm/vllm_for_multi_arc.patch && \
-    --mount=type=cache,target=/root/.cache/pip \
-    --mount=type=bind,source=.git,target=.git \
-    pip install --no-cache-dir -r requirements/xpu.txt && \
-    python3 setup.py install && \
-    rm -f /llm/vllm_for_multi_arc.patch
+    git apply /llm/vllm_for_multi_arc.patch
+
+# Install requirements with cache + .git info
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir \
+        -r requirements/xpu.txt && \
+    python3 setup.py install
+
+# Cleanup patch file
+RUN rm -f /llm/vllm_for_multi_arc.patch
 
 CMD ["/bin/bash"]
 
@@ -56,6 +62,9 @@ CMD ["/bin/bash"]
 
 # ======== OpenAI Serving Stage ========
 FROM vllm-base AS vllm-openai
+
+ARG http_proxy
+ARG https_proxy
 
 # install additional dependencies for openai api server
 RUN --mount=type=cache,target=/root/.cache/pip \
